@@ -6,19 +6,15 @@ var vector m_vOldLocation;
 var float m_fTimeInOldLocation;
 var float m_fTimeSinceLastTick;
 
+// How much time to wait between toggling the blue/red overwatch icon
 var config float OVERWATCH_TOGGLE_DELAY; 
+
+// How much time to wait between ticks before processing LoS
 var config float SIGHTLINE_TICK_DELAY;
 
 function Mutate(String MutateString, PlayerController Sender)
 {
     super.Mutate(MutateString, Sender);
-}
-
-function XGUnit SpawnAlien(EPawnType ePawn)
-{
-    local XGUnit kUnit;
-    kUnit = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawn, false);
-    return kUnit;
 }
 
 function ToggleOverwatchIndicators()
@@ -60,7 +56,7 @@ simulated event Tick(float fDeltaTime)
     }
 
     m_fTimeSinceLastTick = 0.0;
-    BuildSightlineMessage(fDeltaTime);
+    ProcessSightline(fDeltaTime);
 }
 
 function InitializeHelper(XGUnit kHelper)
@@ -71,7 +67,9 @@ function InitializeHelper(XGUnit kHelper)
 
         // Make sure the helper is invisible
         kHelper.SetVisible(false);
+        kHelper.SetHidden(true);
         kHelper.SetHiding(true);
+        kHelper.GetPawn().SetHidden(true);
         kHelper.GetPawn().HideMainPawnMesh();
         kHelper.GetPawn().Weapon.Mesh.SetHidden(true);
 }
@@ -115,7 +113,7 @@ function ProcessVisibleUnits(XGUnit kHelper)
     }
 }
 
-function BuildSightlineMessage(float fDeltaTime)
+function ProcessSightline(float fDeltaTime)
 {
     local Vector cursorLoc;
     local XComPlayerController controllerRef;
@@ -191,81 +189,12 @@ function BuildSightlineMessage(float fDeltaTime)
             ProcessVisibleUnits(m_kFriendlySquid);
         }
 
+        XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
 
         // Set up the overwatch toggle timer
         if (m_fTimeInOldLocation > 0.2) {
             SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
         }
-
-//        XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
-/*
-        // TODO Squadsight
-        //if (iVisible > 0) {
-            pres.isOnScreen(cursorLoc, vScreenLocation);
-            msg = "Enemies in sight (" $ iVisible $ "): " $ alienMsg; //$ " S pos: " $ string(m_kFriendlySquid.Location) $ " U pos: " $ string(kActiveUnit.Location);
-            pres.GetWorldMessenger().Message(msg, cursorLoc, 0, 1, "cursorHelp_SightlinesMod",, true, vScreenLocation, 0.0);
-        //} else {
-            //pres.GetWorldMessenger().RemoveMessage("cursorHelp_SightlinesMod");
-        //} 
-*/
-        //m_kFriendlySquid.GetPawn().SetLocation(kActiveUnit.Location);
-        //m_kFriendlySquid.ProcessNewPosition(false);
-
-/*
-        kSquad.RemoveUnit(m_kFriendlySquid);
-        for (i = 0; i < kSquad.m_iNumPermanentUnits; ++i) {
-            if (kSquad.m_arrPermanentMembers[i] == m_kFriendlySquid) {
-                found = true;
-            } 
-
-            if (found && i < (kSquad.m_iNumPermanentUnits -1)) {
-                kSquad.m_arrPermanentMembers[i] = kSquad.m_arrPermanentMembers[i+1];
-            } else {
-                if (found) {
-                    kSquad.m_arrPermanentMembers[i] = none;
-                }
-            }
-        }
-        kSquad.m_iNumPermanentUnits--;
-        m_kFriendlySquid.Uninit();
-        m_kFriendlySquid.Destroy();
-        */
     }        
-}
-
-function String ConstructAlienMessage(XGUnit kEnemy)
-{
-    switch(kEnemy.GetCharType()) {
-    case eChar_Sectoid: return "s";
-    case eChar_Floater: return "f";
-    case eChar_Thinman: return "t";
-    case eChar_Muton: return "m";
-    case eChar_Cyberdisc: return "C";
-    case eChar_SectoidCommander: return "S";
-    case eChar_FloaterHeavy: return "F";
-    case eChar_MutonElite: return "e";
-    case eChar_Ethereal: return "E";
-    case eChar_Chryssalid: return "c";
-    case eChar_Zombie: return "z";
-    case eChar_MutonBerserker: return "B";
-    case eChar_Sectopod: return "P";
-    case eChar_Drone: return "d";
-    case eChar_Outsider: return "o";
-    case eChar_EtherealUber: return "E";
-    case eChar_Mechtoid: return "M";
-    case eChar_Mechtoid_Alt: return "M";
-    case eChar_Seeker: return "k";
-    case eChar_ExaltOperative: return "x";
-    case eChar_ExaltSniper: return "n";
-    case eChar_ExaltHeavy: return "h";
-    case eChar_ExaltMedic: return "i";
-    case eChar_ExaltEliteOperative: return "X";
-    case eChar_ExaltEliteSniper: return "N";
-    case eChar_ExaltEliteHeavy: return "H";
-    case eChar_ExaltEliteMedic: return "I";
-    default: 
-        `Log("ConstructAlienMessage: unknown type " $ kEnemy.GetCharType());
-        return "?";
-    }
 }
 
