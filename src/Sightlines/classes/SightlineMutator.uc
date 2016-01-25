@@ -124,77 +124,79 @@ function ProcessSightline(float fDeltaTime)
     controllerRef = XComPlayerController(WorldInfo.GetALocalPlayerController());
 
     kActiveUnit = XComTacticalController(controllerRef).GetActiveUnit();
-    if (kActiveUnit != none) {
-        if (m_kFriendlySquid == none) {
-            foreach AllActors(class'XGUnit', kUnit) {
-                if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Seeker) {
-                    m_kFriendlySquid = kUnit;
-                    InitializeHelper(m_kFriendlySquid);
-                    break;
-                }
 
-                if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Sectoid) {
-                    m_kFriendlySectoid = kUnit; 
-                    InitializeHelper(m_kFriendlySectoid);
-                    break;
-                }
+    if (m_kFriendlySquid == none) {
+        foreach AllActors(class'XGUnit', kUnit) {
+            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Seeker) {
+                m_kFriendlySquid = kUnit;
+                InitializeHelper(m_kFriendlySquid);
+                break;
+            }
+
+            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Sectoid) {
+                m_kFriendlySectoid = kUnit; 
+                InitializeHelper(m_kFriendlySectoid);
+                break;
             }
         }
+    }
 
-        if (m_kFriendlySquid == none) {
-            m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, false);
-            XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
-            m_kFriendlySquid.SetvisibleToTeams(0);
-            InitializeHelper(m_kFriendlySquid);
-        } 
+    if (m_kFriendlySquid == none) {
+        m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, false);
+        XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
+        m_kFriendlySquid.SetvisibleToTeams(0);
+        InitializeHelper(m_kFriendlySquid);
+    } 
 
-        if (m_kFriendlySectoid == none) {
-            m_kFriendlySectoid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, false);
-            XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySectoid, false, eTeam_Neutral);
-            m_kFriendlySectoid.SetvisibleToTeams(0);
-            InitializeHelper(m_kFriendlySectoid);
-        }
-        
-        kPathPawn = kActiveUnit.GetPathingPawn();
-        cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
-        if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
-            cursorLoc = kActiveUnit.Location;
-        }
-
-
-        m_fTimeInOldLocation += fDeltaTime;
-        // If the cursor hasn't moved, just return without refreshing the LoS indicators.
-        // This lets the overwatch timer toggle things correctly.
-        if (cursorLoc == m_vOldLocation && m_fTimeInOldLocation > 0.2) {
-            return;
-        }
-   
-        // Cursor has moved: cache the new position and proceed.
-        m_vOldLocation = cursorLoc;
-
-        if (m_fTimeInOldLocation > 0.2) {
-            m_fTimeInOldLocation = 0.0;
-            // Reset the old timer.
-            ClearTimer('ToggleOverwatchIndicators');
-        }
+    if (m_kFriendlySectoid == none) {
+        m_kFriendlySectoid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, false);
+        XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySectoid, false, eTeam_Neutral);
+        m_kFriendlySectoid.SetvisibleToTeams(0);
+        InitializeHelper(m_kFriendlySectoid);
+    }
+    
+    kPathPawn = kActiveUnit.GetPathingPawn();
+    cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
+    if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
+        cursorLoc = kActiveUnit.Location;
+    }
 
 
-        // Set the helper to the new path position. 
-        MoveHelper(m_kFriendlySquid, cursorLoc);
-        MoveHelper(m_kFriendlySectoid, cursorLoc);
+    m_fTimeInOldLocation += fDeltaTime;
+    // If the cursor hasn't moved, just return without refreshing the LoS indicators.
+    // This lets the overwatch timer toggle things correctly.
+    if (cursorLoc == m_vOldLocation && m_fTimeInOldLocation > 0.2) {
+        return;
+    }
 
-        if (kActiveUnit.CanUseCover()) {
-            ProcessVisibleUnits(m_kFriendlySectoid);
-        } else {
-            ProcessVisibleUnits(m_kFriendlySquid);
-        }
+    // Cursor has moved: cache the new position and proceed.
+    m_vOldLocation = cursorLoc;
 
-        XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
+    if (m_fTimeInOldLocation > 0.2) {
+        m_fTimeInOldLocation = 0.0;
+        // Reset the old timer.
+        ClearTimer('ToggleOverwatchIndicators');
+    }
 
-        // Set up the overwatch toggle timer
-        if (m_fTimeInOldLocation > 0.2) {
-            SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
-        }
-    }        
+
+    // Set the helper to the new path position. 
+    MoveHelper(m_kFriendlySquid, cursorLoc);
+    MoveHelper(m_kFriendlySectoid, cursorLoc);
+
+    InitializeHelper(m_kFriendlySquid);
+    InitializeHelper(m_kFriendlySectoid);
+
+    if (kActiveUnit.CanUseCover()) {
+        ProcessVisibleUnits(m_kFriendlySectoid);
+    } else {
+        ProcessVisibleUnits(m_kFriendlySquid);
+    }
+
+    XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
+
+    // Set up the overwatch toggle timer
+    if (m_fTimeInOldLocation > 0.2) {
+        SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
+    }
 }
 
