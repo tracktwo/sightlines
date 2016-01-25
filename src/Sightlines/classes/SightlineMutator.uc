@@ -20,7 +20,7 @@ function Mutate(String MutateString, PlayerController Sender)
 function ToggleOverwatchIndicators()
 {
     local XGUnit kUnit;
-
+    `Log("Timer fired");
     foreach AllActors(class 'XGUnit', kUnit) {
         if (kUnit.m_aCurrentStats[eStat_Reaction] > 0) {
             if ((kUnit.m_iZombieMoraleLoss & 0x40000000) != 0) {
@@ -113,6 +113,18 @@ function ProcessVisibleUnits(XGUnit kHelper)
     }
 }
 
+function XGUnit CreateHelper(EPawnType ePawnType)
+{
+    local XComSpawnPoint_Alien kSpawnPt;
+    local XGPlayer kPlayer;
+    local XGUnit kUnit;
+
+    kSpawnPt = Spawn(class'XComSpawnPoint_Alien');
+    kPlayer = XGBattle_SP(XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle).GetAnimalPlayer();
+    kUnit = kPlayer.SpawnAlien(ePawnType, kSpawnPt,,, false);
+    return kUnit;
+}
+
 function ProcessSightline(float fDeltaTime)
 {
     local Vector cursorLoc;
@@ -142,15 +154,17 @@ function ProcessSightline(float fDeltaTime)
     }
 
     if (m_kFriendlySquid == none) {
-        m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, false);
-        XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
+//        m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, true);
+ //       XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
+        m_kFriendlySquid = CreateHelper(ePawnType_Seeker);
         m_kFriendlySquid.SetvisibleToTeams(0);
         InitializeHelper(m_kFriendlySquid);
     } 
 
     if (m_kFriendlySectoid == none) {
-        m_kFriendlySectoid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, false);
-        XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySectoid, false, eTeam_Neutral);
+        //m_kFriendlySectoid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, true);
+        //XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySectoid, false, eTeam_Neutral);
+        m_kFriendlySectoid = CreateHelper(ePawnType_Sectoid);
         m_kFriendlySectoid.SetvisibleToTeams(0);
         InitializeHelper(m_kFriendlySectoid);
     }
@@ -176,6 +190,8 @@ function ProcessSightline(float fDeltaTime)
         m_fTimeInOldLocation = 0.0;
         // Reset the old timer.
         ClearTimer('ToggleOverwatchIndicators');
+        SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
+        `Log("Cleared timer");
     }
 
 
@@ -192,11 +208,6 @@ function ProcessSightline(float fDeltaTime)
         ProcessVisibleUnits(m_kFriendlySquid);
     }
 
-    XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
-
-    // Set up the overwatch toggle timer
-    if (m_fTimeInOldLocation > 0.2) {
-        SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
-    }
+//    XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
 }
 
