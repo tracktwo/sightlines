@@ -1,14 +1,16 @@
-class SightlineMutator extends XComMutator;
+class SightlineMutator extends XComMutator config(GameCore);
 
-var XGUnit kFriendlyDrone;
-var vector vOldLocation;
+var XGUnit m_kFriendlySquid;
+var XGUnit m_kFriendlySectoid;
+var vector m_vOldLocation;
+var float m_fTimeInOldLocation;
+var float m_fTimeSinceLastTick;
+
+var config float OVERWATCH_TOGGLE_DELAY; 
+var config float SIGHTLINE_TICK_DELAY;
 
 function Mutate(String MutateString, PlayerController Sender)
 {
-    if (MutateString == "UpdateSightlines") {
-        BuildSightlineMessage();
-    }
-
     super.Mutate(MutateString, Sender);
 }
 
@@ -38,7 +40,7 @@ function ToggleOverwatchIndicators()
         }
     }
 
-    SetTimer(2.5, false, 'ToggleOverwatchIndicators');
+    SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
 }
 
 simulated event Tick(float fDeltaTime)
@@ -52,79 +54,109 @@ simulated event Tick(float fDeltaTime)
         return;
     }
 
-    BuildSightlineMessage();
+    m_fTimeSinceLastTick += fDeltaTime;
+    if (m_fTimeSinceLastTick < SIGHTLINE_TICK_DELAY) {
+        return;
+    }
+
+    m_fTimeSinceLastTick = 0.0;
+    BuildSightlineMessage(fDeltaTime);
 }
 
-function BuildSightlineMessage()
+function InitializeHelper(XGUnit kHelper)
 {
-    local XCom3DCursor kCursor;
-    local Vector cursorLoc;
-    local Vector2D vScreenLocation;
-    local XComPlayerController controllerRef;
-    local XComPresentationLayer pres;
-    local XGUnit kActiveUnit;
-    local XGUnit kEnemy;
-    local int iVisible;
-    local string msg;
-    local string alienMsg;
+        kHelper.GetPawn().SetCollision(false, false, true);
+        kHelper.GetPawn().bCollideWorld = false;
+        kHelper.GetPawn().SetPhysics(0);
+
+        // Make sure the helper is invisible
+        kHelper.SetVisible(false);
+        kHelper.SetHiding(true);
+        kHelper.GetPawn().HideMainPawnMesh();
+        kHelper.GetPawn().Weapon.Mesh.SetHidden(true);
+}
+
+function MoveHelper(XGUnit kHelper, vector cursorLoc)
+{
+    kHelper.GetPawn().SetLocation(cursorLoc);
+
+    // Process the new position without evaluating the new stance or the pawn will interact 
+    // with the environment in ways we don't want (e.g. splashing in water).
+    kHelper.ProcessNewPosition(false);
+
+    // Don't mark the tile occupied by the helper as blocked. E.g. if you're behind hard cover
+    // and are peeking out around a corner and you move the cursor to the tile you peek out over,
+    // you would otherwise lose vision as this unit is blocking the peek.
+    class'XComWorldData'.static.GetWorldData().ClearTileBlockedByUnitFlag(kHelper);
+}
+
+function ProcessVisibleUnits(XGUnit kHelper)
+{
     local array<XGUnit> arrEnemies;
-    local XGUnit kFriendlyDrone;
-    local int i;
-    local bool found;
-    local XGSquad kSquad;
+    local XGUnit kEnemy;
+
+    // Gather up all the enemies the helper can see
+    arrEnemies = kHelper.GetVisibleEnemies();
+
+    // Reset all units in the game to not visible.
+    foreach AllActors(class'XGUnit', kEnemy) {
+        if (kEnemy.GetTeam() != eTeam_Alien) {
+            continue;
+        }
+
+        if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
+            kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000; 
+        }
+    }
+
+    // Mark each alien the helper can see as visible
+    foreach arrEnemies (kEnemy) {
+        kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
+    }
+}
+
+function BuildSightlineMessage(float fDeltaTime)
+{
+    local Vector cursorLoc;
+    local XComPlayerController controllerRef;
+    local XGUnit kActiveUnit;
     local XGUnit kUnit;
     local XComPathingPawn kPathPawn;
-    local UnitDirectionInfo directionInfo;
-    local array<XComInteractPoint> arrPoints;
 
     controllerRef = XComPlayerController(WorldInfo.GetALocalPlayerController());
 
     kActiveUnit = XComTacticalController(controllerRef).GetActiveUnit();
     if (kActiveUnit != none) {
-        pres = XComPresentationLayer(controllerRef.m_Pres);
-        //kCursor = XComTacticalController(controllerRef).GetCursor();
-        //cursorLoc = kCursor.Location;
-        //if (cursorLoc == vOldLocation) {
-            //return;
-        //}
-        ClearTimer('ToggleOverwatchIndicators');
-        //vOldLocation = cursorLoc;
-
-        if (kFriendlyDrone == none) {
+        if (m_kFriendlySquid == none) {
             foreach AllActors(class'XGUnit', kUnit) {
+                if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Seeker) {
+                    m_kFriendlySquid = kUnit;
+                    InitializeHelper(m_kFriendlySquid);
+                    break;
+                }
+
                 if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Sectoid) {
-                    kFriendlyDrone = kUnit;
+                    m_kFriendlySectoid = kUnit; 
+                    InitializeHelper(m_kFriendlySectoid);
                     break;
                 }
             }
         }
 
-        if (kFriendlyDrone == none) {
-            //kFriendlyDrone = SpawnAlien(ePawnType_Sectoid);
-            kFriendlyDrone = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, false);
-            //kFriendlyDrone.SetVisible(false);
-            //kFriendlyDrone.SetHiding(true);
-            kSquad = kFriendlyDrone.GetSquad();
-            XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(kFriendlyDrone, false, eTeam_Neutral);
-            kFriendlyDrone.SetvisibleToTeams(0);
-       } 
-       //
-        
-        kFriendlyDrone.GetPawn().SetCollision(false, false, false);
-        kFriendlyDrone.GetPawn().bCollideWorld = false;
-        kFriendlyDrone.GetPawn().SetPhysics(0);
+        if (m_kFriendlySquid == none) {
+            m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, false);
+            XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
+            m_kFriendlySquid.SetvisibleToTeams(0);
+            InitializeHelper(m_kFriendlySquid);
+        } 
 
-        // Reset all units
-        foreach AllActors(class'XGUnit', kEnemy) {
-            if (kEnemy.GetTeam() != eTeam_Alien) {
-                continue;
-            }
-
-            if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
-                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000; 
-            }
+        if (m_kFriendlySectoid == none) {
+            m_kFriendlySectoid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, false);
+            XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySectoid, false, eTeam_Neutral);
+            m_kFriendlySectoid.SetvisibleToTeams(0);
+            InitializeHelper(m_kFriendlySectoid);
         }
-
+        
         kPathPawn = kActiveUnit.GetPathingPawn();
         cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
         if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
@@ -132,59 +164,57 @@ function BuildSightlineMessage()
         }
 
 
-        kFriendlyDrone.GetPawn().SetLocation(cursorLoc);
-        kFriendlyDrone.ProcessNewPosition(false);
+        m_fTimeInOldLocation += fDeltaTime;
+        // If the cursor hasn't moved, just return without refreshing the LoS indicators.
+        // This lets the overwatch timer toggle things correctly.
+        if (cursorLoc == m_vOldLocation && m_fTimeInOldLocation > 0.2) {
+            return;
+        }
+   
+        // Cursor has moved: cache the new position and proceed.
+        m_vOldLocation = cursorLoc;
 
-        /*
-        kFriendlyDrone.SetVisible(false);
-        kFriendlyDrone.SetHiding(true);
-        kFriendlyDrone.SetHidden(true);
-        kFriendlyDrone.GetPawn().SetHidden(true);
-        kFriendlyDrone.GetPawn().HideMainPawnMesh();
-        kFriendlyDrone.GetPawn().Weapon.Mesh.SetHidden(true);
-        */
-        //kActiveUnit.m_kPlayerNativeBase.m_kSightMgrBase.RecalculateVisible();
-        //class'XComWorldData'.static.GetWorldData().UpdateVisibility();
-        class'XComWorldData'.static.GetWorldData().ClearTileBlockedByUnitFlag(kFriendlyDrone);
-        arrEnemies = kFriendlyDrone.GetVisibleEnemies();
-
-
-        //if (cursorLoc == kActiveUnit.Location) {
-        //    return;
-       // }
-
-        // Set visible aliens as visible
-        foreach arrEnemies (kEnemy) {
-            //if (kActiveUnit.CanSee(kEnemy)) {
-                //`Log("Building icon for " $ string(kEnemy));
-                //XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).GetWorldMessenger().Message((("<img src='" $ "Icon_OVERWATCH_HTML") $ "' align='baseline' vspace='-3'>") $ " - !!!", kEnemy.GetLocation(), 0, 1, "cursorHelp_SightlineMod");
-                alienMsg $= ConstructAlienMessage(kEnemy);
-                ++iVisible;
-                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
-            //}
+        if (m_fTimeInOldLocation > 0.2) {
+            m_fTimeInOldLocation = 0.0;
+            // Reset the old timer.
+            ClearTimer('ToggleOverwatchIndicators');
         }
 
-        SetTimer(2.5, false, 'ToggleOverwatchIndicators');
 
-        XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
+        // Set the helper to the new path position. 
+        MoveHelper(m_kFriendlySquid, cursorLoc);
+        MoveHelper(m_kFriendlySectoid, cursorLoc);
 
+        if (kActiveUnit.CanUseCover()) {
+            ProcessVisibleUnits(m_kFriendlySectoid);
+        } else {
+            ProcessVisibleUnits(m_kFriendlySquid);
+        }
+
+
+        // Set up the overwatch toggle timer
+        if (m_fTimeInOldLocation > 0.2) {
+            SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
+        }
+
+//        XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
+/*
         // TODO Squadsight
         //if (iVisible > 0) {
             pres.isOnScreen(cursorLoc, vScreenLocation);
-            msg = "Enemies in sight (" $ iVisible $ "): " $ alienMsg; //$ " S pos: " $ string(kFriendlyDrone.Location) $ " U pos: " $ string(kActiveUnit.Location);
+            msg = "Enemies in sight (" $ iVisible $ "): " $ alienMsg; //$ " S pos: " $ string(m_kFriendlySquid.Location) $ " U pos: " $ string(kActiveUnit.Location);
             pres.GetWorldMessenger().Message(msg, cursorLoc, 0, 1, "cursorHelp_SightlinesMod",, true, vScreenLocation, 0.0);
         //} else {
             //pres.GetWorldMessenger().RemoveMessage("cursorHelp_SightlinesMod");
         //} 
-
-        //kFriendlyDrone.GetPawn().SetLocation(kActiveUnit.Location);
-        //kFriendlyDrone.ProcessNewPosition(false);
-        //class'XComWorldData'.static.GetWorldData().UpdateVisibility();
+*/
+        //m_kFriendlySquid.GetPawn().SetLocation(kActiveUnit.Location);
+        //m_kFriendlySquid.ProcessNewPosition(false);
 
 /*
-        kSquad.RemoveUnit(kFriendlyDrone);
+        kSquad.RemoveUnit(m_kFriendlySquid);
         for (i = 0; i < kSquad.m_iNumPermanentUnits; ++i) {
-            if (kSquad.m_arrPermanentMembers[i] == kFriendlyDrone) {
+            if (kSquad.m_arrPermanentMembers[i] == m_kFriendlySquid) {
                 found = true;
             } 
 
@@ -197,8 +227,8 @@ function BuildSightlineMessage()
             }
         }
         kSquad.m_iNumPermanentUnits--;
-        kFriendlyDrone.Uninit();
-        kFriendlyDrone.Destroy();
+        m_kFriendlySquid.Uninit();
+        m_kFriendlySquid.Destroy();
         */
     }        
 }
@@ -238,3 +268,4 @@ function String ConstructAlienMessage(XGUnit kEnemy)
         return "?";
     }
 }
+
