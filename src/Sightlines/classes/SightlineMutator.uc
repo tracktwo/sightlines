@@ -41,6 +41,20 @@ function ToggleOverwatchIndicators()
     SetTimer(2.5, false, 'ToggleOverwatchIndicators');
 }
 
+simulated event Tick(float fDeltaTime)
+{
+    local XGUnit kActiveUnit;
+    local XComPlayerController kController;
+    kController = XComPlayerController(WorldInfo.GetALocalPlayerController());
+    kActiveUnit = XComTacticalController(kController).GetActiveUnit();
+
+    if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || kActiveUnit.IsPerformingAction()) {
+        return;
+    }
+
+    BuildSightlineMessage();
+}
+
 function BuildSightlineMessage()
 {
     local XCom3DCursor kCursor;
@@ -61,6 +75,7 @@ function BuildSightlineMessage()
     local XGUnit kUnit;
     local XComPathingPawn kPathPawn;
     local UnitDirectionInfo directionInfo;
+    local array<XComInteractPoint> arrPoints;
 
     controllerRef = XComPlayerController(WorldInfo.GetALocalPlayerController());
 
@@ -95,41 +110,49 @@ function BuildSightlineMessage()
        } 
        //
         
+        kFriendlyDrone.GetPawn().SetCollision(false, false, false);
+        kFriendlyDrone.GetPawn().bCollideWorld = false;
+        kFriendlyDrone.GetPawn().SetPhysics(0);
+
+        // Reset all units
+        foreach AllActors(class'XGUnit', kEnemy) {
+            if (kEnemy.GetTeam() != eTeam_Alien) {
+                continue;
+            }
+
+            if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
+                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000; 
+            }
+        }
+
         kPathPawn = kActiveUnit.GetPathingPawn();
         cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
         if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
             cursorLoc = kActiveUnit.Location;
         }
 
+
         kFriendlyDrone.GetPawn().SetLocation(cursorLoc);
         kFriendlyDrone.ProcessNewPosition(false);
+
+        /*
         kFriendlyDrone.SetVisible(false);
         kFriendlyDrone.SetHiding(true);
         kFriendlyDrone.SetHidden(true);
         kFriendlyDrone.GetPawn().SetHidden(true);
         kFriendlyDrone.GetPawn().HideMainPawnMesh();
         kFriendlyDrone.GetPawn().Weapon.Mesh.SetHidden(true);
-        class'XComWorldData'.static.GetWorldData().UpdateVisibility();
+        */
+        //kActiveUnit.m_kPlayerNativeBase.m_kSightMgrBase.RecalculateVisible();
+        //class'XComWorldData'.static.GetWorldData().UpdateVisibility();
         class'XComWorldData'.static.GetWorldData().ClearTileBlockedByUnitFlag(kFriendlyDrone);
         arrEnemies = kFriendlyDrone.GetVisibleEnemies();
 
-        // Reset all units
-        foreach AllActors(class'XGUnit', kEnemy) {
-
-            if (class'XComWorldData'.static.GetWorldData().CanSeeActorToActor(kFriendlyDrone, kEnemy, DirectionInfo)) {
-                alienMsg $= ConstructAlienMessage(kEnemy);
-                ++iVisible;
-                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
-            }
-            else if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
-                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000; 
-            }
-        }
 
         //if (cursorLoc == kActiveUnit.Location) {
         //    return;
        // }
-/*
+
         // Set visible aliens as visible
         foreach arrEnemies (kEnemy) {
             //if (kActiveUnit.CanSee(kEnemy)) {
@@ -140,7 +163,7 @@ function BuildSightlineMessage()
                 kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
             //}
         }
-*/
+
         SetTimer(2.5, false, 'ToggleOverwatchIndicators');
 
         XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
