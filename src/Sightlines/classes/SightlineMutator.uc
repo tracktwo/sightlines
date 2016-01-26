@@ -9,8 +9,10 @@ var float m_fTimeSinceLastTick;
 // How much time to wait between toggling the blue/red overwatch icon
 var config float OVERWATCH_TOGGLE_DELAY; 
 
+/*
 // How much time to wait between ticks before processing LoS
 var config float SIGHTLINE_TICK_DELAY;
+*/
 
 function Mutate(String MutateString, PlayerController Sender)
 {
@@ -49,13 +51,15 @@ simulated event Tick(float fDeltaTime)
     if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || kActiveUnit.IsPerformingAction()) {
         return;
     }
-
+/*
     m_fTimeSinceLastTick += fDeltaTime;
     if (m_fTimeSinceLastTick < SIGHTLINE_TICK_DELAY) {
         return;
     }
 
     m_fTimeSinceLastTick = 0.0;
+*/
+    `Log("Delta = " $ fDeltaTime);
     ProcessSightline(fDeltaTime);
 }
 
