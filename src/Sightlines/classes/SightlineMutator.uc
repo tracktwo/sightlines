@@ -9,10 +9,10 @@ var float m_fTimeSinceLastTick;
 // How much time to wait between toggling the blue/red overwatch icon
 var config float OVERWATCH_TOGGLE_DELAY; 
 
-/*
+
 // How much time to wait between ticks before processing LoS
 var config float SIGHTLINE_TICK_DELAY;
-*/
+
 
 function Mutate(String MutateString, PlayerController Sender)
 {
@@ -51,14 +51,14 @@ simulated event Tick(float fDeltaTime)
     if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || kActiveUnit.IsPerformingAction()) {
         return;
     }
-/*
+
     m_fTimeSinceLastTick += fDeltaTime;
     if (m_fTimeSinceLastTick < SIGHTLINE_TICK_DELAY) {
         return;
     }
 
     m_fTimeSinceLastTick = 0.0;
-*/
+
     `Log("Delta = " $ fDeltaTime);
     ProcessSightline(fDeltaTime);
 }
@@ -92,10 +92,13 @@ function MoveHelper(XGUnit kHelper, vector cursorLoc)
     class'XComWorldData'.static.GetWorldData().ClearTileBlockedByUnitFlag(kHelper);
 }
 
-function ProcessVisibleUnits(XGUnit kHelper)
+// Process all units in the game and update their visibility flags. Return true if any unit changed
+// from not visible to visible or vice versa.
+function bool ProcessVisibleUnits(XGUnit kHelper)
 {
     local array<XGUnit> arrEnemies;
     local XGUnit kEnemy;
+    local bool bAnyChange;
 
     // Gather up all the enemies the helper can see
     arrEnemies = kHelper.GetVisibleEnemies();
@@ -106,15 +109,27 @@ function ProcessVisibleUnits(XGUnit kHelper)
             continue;
         }
 
-        if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
-            kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000; 
+        if (arrEnemies.Find(kEnemy) != -1) {
+            // Enemy is visible. Set the flag if it isn't already set.
+            if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) == 0) {
+                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
+                bAnyChange = true;
+            }
+        } else {
+            // Enemy is not visible. Strip all flags.
+            if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
+                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000;
+                bAnyChange = true;
+            }
         }
     }
-
+/*
     // Mark each alien the helper can see as visible
     foreach arrEnemies (kEnemy) {
         kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
-    }
+    } */
+
+    return bAnyChange;
 }
 
 function XGUnit CreateHelper(EPawnType ePawnType)
@@ -136,6 +151,7 @@ function ProcessSightline(float fDeltaTime)
     local XGUnit kActiveUnit;
     local XGUnit kUnit;
     local XComPathingPawn kPathPawn;
+    local bool bAnyChange;
 
     controllerRef = XComPlayerController(WorldInfo.GetALocalPlayerController());
 
@@ -143,7 +159,7 @@ function ProcessSightline(float fDeltaTime)
 
     if (m_kFriendlySquid == none) {
         foreach AllActors(class'XGUnit', kUnit) {
-            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Seeker) {
+            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Chryssalid) {
                 m_kFriendlySquid = kUnit;
                 InitializeHelper(m_kFriendlySquid);
                 break;
@@ -164,7 +180,7 @@ function ProcessSightline(float fDeltaTime)
     if (m_kFriendlySquid == none) {
 //        m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, true);
  //       XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
-        m_kFriendlySquid = CreateHelper(ePawnType_Seeker);
+        m_kFriendlySquid = CreateHelper(ePawnType_Chryssalid);
         m_kFriendlySquid.SetvisibleToTeams(0);
         InitializeHelper(m_kFriendlySquid);
     } 
@@ -187,21 +203,17 @@ function ProcessSightline(float fDeltaTime)
     m_fTimeInOldLocation += fDeltaTime;
     // If the cursor hasn't moved, just return without refreshing the LoS indicators.
     // This lets the overwatch timer toggle things correctly.
+    /*
     if (cursorLoc == m_vOldLocation && m_fTimeInOldLocation > 0.2) {
         return;
-    }
+    } */
 
     // Cursor has moved: cache the new position and proceed.
     m_vOldLocation = cursorLoc;
-
+/*
     if (m_fTimeInOldLocation > 0.2) {
         m_fTimeInOldLocation = 0.0;
-        // Reset the old timer.
-        ClearTimer('ToggleOverwatchIndicators');
-        SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
-        `Log("Cleared timer");
-    }
-
+    } */
 
     // Set the helper to the new path position. 
     MoveHelper(m_kFriendlySquid, cursorLoc);
@@ -211,9 +223,14 @@ function ProcessSightline(float fDeltaTime)
     InitializeHelper(m_kFriendlySectoid);
 
     if (kActiveUnit.CanUseCover()) {
-        ProcessVisibleUnits(m_kFriendlySectoid);
+        bAnyChange = ProcessVisibleUnits(m_kFriendlySectoid);
     } else {
-        ProcessVisibleUnits(m_kFriendlySquid);
+        bAnyChange = ProcessVisibleUnits(m_kFriendlySquid);
+    }
+
+    if (bAnyChange) {
+        ClearTimer('ToggleOverwatchIndicators');
+        SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
     }
 
 //    XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
