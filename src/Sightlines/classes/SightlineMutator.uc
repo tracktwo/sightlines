@@ -148,7 +148,11 @@ function ProcessSightline(float fDeltaTime)
                 InitializeHelper(m_kFriendlySquid);
                 break;
             }
+        }
+    }
 
+    if (m_kFriendlySectoid == none) {
+        foreach AllActors(class'XGUnit', kUnit) {
             if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Sectoid) {
                 m_kFriendlySectoid = kUnit; 
                 InitializeHelper(m_kFriendlySectoid);
