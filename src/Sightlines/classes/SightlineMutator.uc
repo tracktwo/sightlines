@@ -1,14 +1,11 @@
 class SightlineMutator extends XComMutator config(GameCore);
 
-var XGUnit m_kFriendlySquid;
+var XGUnit m_kFriendlyChryssalid;
 var XGUnit m_kFriendlySectoid;
-var vector m_vOldLocation;
-var float m_fTimeInOldLocation;
 var float m_fTimeSinceLastTick;
 
 // How much time to wait between toggling the blue/red overwatch icon
 var config float OVERWATCH_TOGGLE_DELAY; 
-
 
 // How much time to wait between ticks before processing LoS
 var config float SIGHTLINE_TICK_DELAY;
@@ -16,9 +13,28 @@ var config float SIGHTLINE_TICK_DELAY;
 
 function Mutate(String MutateString, PlayerController Sender)
 {
+    if (MutateString == "XComTacticalController.ParsePath") {
+        MoveHelperOutOfTheWay(m_kFriendlySectoid);
+        MoveHelperOutOfTheWay(m_kFriendlyChryssalid);
+    }
     super.Mutate(MutateString, Sender);
 }
 
+// Move the helper units somewhere safe. This is invoked from a mutator call before processing a move
+// order as moving onto the same tile as a helper corrupts the tile blocking state such that the
+// tile is considered unoccupied. This means other units can then walk right onto it. By moving the units
+// out of the way first to a close, empty location, the tile remains blocked after the move order completes.
+function MoveHelperOutOfTheWay(XGUnit kUnit)
+{
+    local vector vPosition;
+
+    if (kUnit != none) {
+        vPosition = class'XComWorldData'.static.GetWorldData().FindClosestValidLocation(kUnit.Location, false, false);
+        MoveHelper(kUnit, vPosition);
+    }
+}
+
+// Swap back and forth between overwatch "red" and "blue" indicators for overwatching enemies.
 function ToggleOverwatchIndicators()
 {
     local XGUnit kUnit;
@@ -41,6 +57,8 @@ function ToggleOverwatchIndicators()
     SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
 }
 
+// Visibilty updates are processed on tick intervals. The minimum time passed between updates
+// is configurable via SIGHTLINE_TICK_DELAY.
 simulated event Tick(float fDeltaTime)
 {
     local XGUnit kActiveUnit;
@@ -59,25 +77,26 @@ simulated event Tick(float fDeltaTime)
 
     m_fTimeSinceLastTick = 0.0;
 
-    `Log("Delta = " $ fDeltaTime);
     ProcessSightline(fDeltaTime);
 }
 
+// Initialize a helper - set them as invisible and non-interacting with the environment.
 function InitializeHelper(XGUnit kHelper)
 {
-        kHelper.GetPawn().SetCollision(false, false, true);
-        kHelper.GetPawn().bCollideWorld = false;
-        kHelper.GetPawn().SetPhysics(0);
+    kHelper.GetPawn().SetCollision(false, false, true);
+    kHelper.GetPawn().bCollideWorld = false;
+    kHelper.GetPawn().SetPhysics(0);
 
-        // Make sure the helper is invisible
-        kHelper.SetVisible(false);
-        kHelper.SetHidden(true);
-        kHelper.SetHiding(true);
-        kHelper.GetPawn().SetHidden(true);
-        kHelper.GetPawn().HideMainPawnMesh();
-        kHelper.GetPawn().Weapon.Mesh.SetHidden(true);
+    // Make sure the helper is invisible
+    kHelper.SetVisible(false);
+    kHelper.SetHidden(true);
+    kHelper.SetHiding(true);
+    kHelper.GetPawn().SetHidden(true);
+    kHelper.GetPawn().HideMainPawnMesh();
+    kHelper.GetPawn().Weapon.Mesh.SetHidden(true);
 }
 
+// Move a helper unit to a new location.
 function MoveHelper(XGUnit kHelper, vector cursorLoc)
 {
     kHelper.GetPawn().SetLocation(cursorLoc);
@@ -123,15 +142,11 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
             }
         }
     }
-/*
-    // Mark each alien the helper can see as visible
-    foreach arrEnemies (kEnemy) {
-        kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
-    } */
 
     return bAnyChange;
 }
 
+// Create a helper unit of the given type.
 function XGUnit CreateHelper(EPawnType ePawnType)
 {
     local XComSpawnPoint_Alien kSpawnPt;
@@ -157,11 +172,12 @@ function ProcessSightline(float fDeltaTime)
 
     kActiveUnit = XComTacticalController(controllerRef).GetActiveUnit();
 
-    if (m_kFriendlySquid == none) {
+    // Try to find our helpers. They may have been loaded from a saved game.
+    if (m_kFriendlyChryssalid == none) {
         foreach AllActors(class'XGUnit', kUnit) {
             if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Chryssalid) {
-                m_kFriendlySquid = kUnit;
-                InitializeHelper(m_kFriendlySquid);
+                m_kFriendlyChryssalid = kUnit;
+                InitializeHelper(m_kFriendlyChryssalid);
                 break;
             }
         }
@@ -177,17 +193,14 @@ function ProcessSightline(float fDeltaTime)
         }
     }
 
-    if (m_kFriendlySquid == none) {
-//        m_kFriendlySquid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Seeker, true);
- //       XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySquid, false, eTeam_Neutral);
-        m_kFriendlySquid = CreateHelper(ePawnType_Chryssalid);
-        m_kFriendlySquid.SetvisibleToTeams(0);
-        InitializeHelper(m_kFriendlySquid);
+    // Spawn the helpers, if necessary.
+    if (m_kFriendlyChryssalid == none) {
+        m_kFriendlyChryssalid = CreateHelper(ePawnType_Chryssalid);
+        m_kFriendlyChryssalid.SetvisibleToTeams(0);
+        InitializeHelper(m_kFriendlyChryssalid);
     } 
 
     if (m_kFriendlySectoid == none) {
-        //m_kFriendlySectoid = XComTacticalCheatManager(GetALocalPlayerController().CheatManager).DropAlien(ePawnType_Sectoid, true);
-        //XComTacticalGRI(class'Engine'.static.GetCurrentWorldInfo().GRI).m_kBattle.SwapTeams(m_kFriendlySectoid, false, eTeam_Neutral);
         m_kFriendlySectoid = CreateHelper(ePawnType_Sectoid);
         m_kFriendlySectoid.SetvisibleToTeams(0);
         InitializeHelper(m_kFriendlySectoid);
@@ -196,43 +209,28 @@ function ProcessSightline(float fDeltaTime)
     kPathPawn = kActiveUnit.GetPathingPawn();
     cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
     if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
-        cursorLoc = kActiveUnit.Location;
+
+        // The path is invalid. Update visibility based on the current active unit and leave the helpers where they are.
+        bAnyChange = ProcessVisibleUnits(kActiveUnit);
     }
+    else {
+        // The path is valid. Move the helpers to the target location and test their visibility.
+        MoveHelper(m_kFriendlyChryssalid, cursorLoc);
+        MoveHelper(m_kFriendlySectoid, cursorLoc);
 
+        InitializeHelper(m_kFriendlyChryssalid);
+        InitializeHelper(m_kFriendlySectoid);
 
-    m_fTimeInOldLocation += fDeltaTime;
-    // If the cursor hasn't moved, just return without refreshing the LoS indicators.
-    // This lets the overwatch timer toggle things correctly.
-    /*
-    if (cursorLoc == m_vOldLocation && m_fTimeInOldLocation > 0.2) {
-        return;
-    } */
-
-    // Cursor has moved: cache the new position and proceed.
-    m_vOldLocation = cursorLoc;
-/*
-    if (m_fTimeInOldLocation > 0.2) {
-        m_fTimeInOldLocation = 0.0;
-    } */
-
-    // Set the helper to the new path position. 
-    MoveHelper(m_kFriendlySquid, cursorLoc);
-    MoveHelper(m_kFriendlySectoid, cursorLoc);
-
-    InitializeHelper(m_kFriendlySquid);
-    InitializeHelper(m_kFriendlySectoid);
-
-    if (kActiveUnit.CanUseCover()) {
-        bAnyChange = ProcessVisibleUnits(m_kFriendlySectoid);
-    } else {
-        bAnyChange = ProcessVisibleUnits(m_kFriendlySquid);
+        if (kActiveUnit.CanUseCover()) {
+            bAnyChange = ProcessVisibleUnits(m_kFriendlySectoid);
+        } else {
+            bAnyChange = ProcessVisibleUnits(m_kFriendlyChryssalid);
+        }
     }
 
     if (bAnyChange) {
         ClearTimer('ToggleOverwatchIndicators');
         SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
     }
-
-//    XComPresentationLayer(XComPlayerController(WorldInfo.GetALocalPlayerController()).m_Pres).m_kUnitFlagManager.Update();
 }
 
