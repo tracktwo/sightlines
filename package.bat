@@ -9,6 +9,7 @@ copy %~dp0\Patches\UIUnitFlag.OnInit.txt %1\Sightlines.txt || (
 type %~dp0\Patches\UIUnitFlag.RealizeEKG.txt >> %1\Sightlines.txt
 type %~dp0\Patches\XGAIPlayer_Animal.OnUnitEndMove.txt >> %1\Sightlines.txt
 type %~dp0\Patches\XComTacticalController.ParsePath.txt >> %1\Sightlines.txt
+type %~dp0\Patches\UITacticalHUD_Radar.UpdateBlips.txt >> %1\Sightlines.txt
 
 copy %~dp0\README.md %1\README.md || (
     echo "Failed to copy README.md
