@@ -67,6 +67,7 @@ simulated event Tick(float fDeltaTime)
     kActiveUnit = XComTacticalController(kController).GetActiveUnit();
 
     if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || kActiveUnit.IsPerformingAction()) {
+        RemoveAllVisibility();
         return;
     }
 
@@ -146,6 +147,16 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
     return bAnyChange;
 }
 
+// Strip the visibility bits from all enemies.
+function RemoveAllVisibility()
+{
+    local XGUnit kUnit;
+
+    foreach AllActors(class'XGUnit', kUnit) {
+        kUnit.m_iZombieMoraleLoss = kUnit.m_iZombieMoraleLoss & ~0x60000000;
+    }
+}
+
 // Create a helper unit of the given type.
 function XGUnit CreateHelper(EPawnType ePawnType)
 {
@@ -210,8 +221,8 @@ function ProcessSightline(float fDeltaTime)
     cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
     if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
 
-        // The path is invalid. Update visibility based on the current active unit and leave the helpers where they are.
-        bAnyChange = ProcessVisibleUnits(kActiveUnit);
+        // The path is invalid. Remove visibility
+        RemoveAllVisibility();
     }
     else {
         // The path is valid. Move the helpers to the target location and test their visibility.
