@@ -1,2 +1,8 @@
+2016-01-27 - Version 1.0
+    - Initial Release!
+    - Added EW support and new indicator types
+    - Indicators now dissappear on alien turn and when performing an action
+    - Fix bug with motion detector showing extra aliens in LW
+
 2016-01-24 - Version 0.1b
     - Initial beta release

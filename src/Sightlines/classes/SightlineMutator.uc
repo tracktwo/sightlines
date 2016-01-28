@@ -1,3 +1,9 @@
+/* 
+ * Sightline Mod for EW/LW by tracktwo 
+ *
+ * https://github.com/tracktwo/sightlines
+ * */
+
 class SightlineMutator extends XComMutator config(GameCore);
 
 enum ESightIndicator
@@ -74,6 +80,8 @@ simulated event Tick(float fDeltaTime)
 {
     local XGUnit kActiveUnit;
     local XComPlayerController kController;
+
+    `Log("Sightline mutator ready and active!");
     kController = XComPlayerController(WorldInfo.GetALocalPlayerController());
     kActiveUnit = XComTacticalController(kController).GetActiveUnit();
 
