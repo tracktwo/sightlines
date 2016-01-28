@@ -88,10 +88,10 @@ improve performance at a cost of less frequent LoS updates.
 SightIndicator controls how visible aliens are represented in the game. There are four
 possible values:
 
-eIndicator_Disc_Green
-eIndicator_Disc_Orange
-eIndicator_Disc_Gold
-eIndicator_Overwatch  (Long War only!)
+    eIndicator_Disc_Green
+    eIndicator_Disc_Orange
+    eIndicator_Disc_Gold
+    eIndicator_Overwatch  (Long War only!)
 
 The first three (including the default, eIndicator_Disc_Green) use the unit selection
 ring to indicate visible units, and the particular value determines the colour used
