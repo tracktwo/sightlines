@@ -71,10 +71,10 @@ DefaultMutatorLoader.ini, but ensure the correct lines are already there.
 The mod contains several configurable variables. These can be modified by adding the following
 lines to the bottom of DefaultGameCore.ini:
 
-[Sightlines.SightlineMutator]
-OVERWATCH_TOGGLE_DELAY=1.2
-SIGHTLINE_TICK_DELAY=1.0
-SightIndicator=eIndicator_Disc_Green
+    [Sightlines.SightlineMutator]
+    OVERWATCH_TOGGLE_DELAY=1.2
+    SIGHTLINE_TICK_DELAY=1.0
+    SightIndicator=eIndicator_Disc_Green
 
 OVERWATCH_TOGGLE_DELAY controls how long the mod waits when switching back and forth
 between the red and blue overwatch icons on visible, overwatching enemies. At the default
