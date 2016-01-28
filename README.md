@@ -1,6 +1,6 @@
-# LoS Indicator Mod for Long War
+# LoS Indicator Mod for XCOM: Enemy Within / Long War
 
-The LoS Indicator is a mod to bring the feature of XCOM2 back to Long War. With this mod 
+The LoS Indicator is a mod to bring the feature of XCOM2 back to XCOM EW/LW. With this mod 
 enabled, while moving the cursor around to select a movement target tile enemies that will
 be visible from that point are indicated graphically on the screen. 
 
@@ -8,6 +8,9 @@ The mod contains several configurable variables that may be of interest, see the
 section below.
 
 ## Installation
+
+The installation steps are different depending on whether you are installing for Long War or
+Vanilla EW. EU is not supported (but might work?)
 
 ### Installation with Long War 1.0
 
