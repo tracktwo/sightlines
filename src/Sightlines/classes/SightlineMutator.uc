@@ -1,8 +1,19 @@
 class SightlineMutator extends XComMutator config(GameCore);
 
+enum ESightIndicator
+{
+    eIndicator_Overwatch,
+    eIndicator_Disc_Green,
+    eIndicator_Disc_Orange,
+    eIndicator_Disc_Gold
+};
+
 var XGUnit m_kFriendlyChryssalid;
 var XGUnit m_kFriendlySectoid;
 var float m_fTimeSinceLastTick;
+
+// What type of indicator to use for visible enemies
+var config ESightIndicator SightIndicator;
 
 // How much time to wait between toggling the blue/red overwatch icon
 var config float OVERWATCH_TOGGLE_DELAY; 
@@ -38,8 +49,8 @@ function MoveHelperOutOfTheWay(XGUnit kUnit)
 function ToggleOverwatchIndicators()
 {
     local XGUnit kUnit;
-    `Log("Timer fired");
-    foreach AllActors(class 'XGUnit', kUnit) {
+
+    foreach AllActors(class'XGUnit', kUnit) {
         if (kUnit.m_aCurrentStats[eStat_Reaction] > 0) {
             if ((kUnit.m_iZombieMoraleLoss & 0x40000000) != 0) {
                 // Enemy is on overwatch and is visible. Toggle their icon to normal by temporarily
@@ -134,12 +145,34 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
             if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) == 0) {
                 kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
                 bAnyChange = true;
+            } 
+
+            // All visible enemies should have their discs updated if necessary, regardless
+            // if they're coming into sight or not.
+            switch(SightIndicator) {
+                case eIndicator_Disc_Green:
+                    kEnemy.SetDiscState(6);
+                    kEnemy.m_kDiscMesh.SetMaterial(0, kEnemy.UnitCursor_UnitSelect_Green);
+                    break;
+                case eIndicator_Disc_Orange:
+                    kEnemy.SetDiscState(6);
+                    break;
+                case eIndicator_Disc_Gold:
+                    kEnemy.SetDiscState(6);
+                    kEnemy.m_kDiscMesh.SetMaterial(0, kEnemy.UnitCursor_UnitSelect_Gold);
+                    break;
+                default:
             }
         } else {
             // Enemy is not visible. Strip all flags.
             if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
                 kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000;
                 bAnyChange = true;
+            }
+
+            // Reset disc state if necessary.
+            if (SightIndicator != eIndicator_Overwatch) {
+                kEnemy.SetDiscState(0);
             }
         }
     }
@@ -154,6 +187,9 @@ function RemoveAllVisibility()
 
     foreach AllActors(class'XGUnit', kUnit) {
         kUnit.m_iZombieMoraleLoss = kUnit.m_iZombieMoraleLoss & ~0x60000000;
+        if (SightIndicator != eIndicator_Overwatch) {
+            kUnit.SetDiscState(0);
+        }
     }
 }
 
@@ -239,7 +275,9 @@ function ProcessSightline(float fDeltaTime)
         }
     }
 
-    if (bAnyChange) {
+    // If we're using overwatch indication, set up the timer toggle to swap 
+    // between red and blue for overwatching enemies.
+    if (bAnyChange && SightIndicator == eIndicator_Overwatch) {
         ClearTimer('ToggleOverwatchIndicators');
         SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
     }
