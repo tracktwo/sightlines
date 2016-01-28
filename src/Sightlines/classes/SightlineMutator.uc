@@ -151,7 +151,11 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
         if (arrEnemies.Find(kEnemy) != -1) {
             // Enemy is visible. Set the flag if it isn't already set.
             if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) == 0) {
-                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
+                if (SightIndicator == eIndicator_Overwatch) {
+                    kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
+                } else {
+                    kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x20000000;
+                }
                 bAnyChange = true;
             } 
 
