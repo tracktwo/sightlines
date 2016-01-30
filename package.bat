@@ -32,3 +32,9 @@ copy D:\UDK\UDKGame\CookedPC\Sightlines.u %1 || (
     exit /b 1
     )
 
+copy D:\UDK\UDKGame\CookedPC\XcomMutator.u %1 || (
+    echo Failed to copy XComMutator.u
+    exit /b 1
+    )
+
+

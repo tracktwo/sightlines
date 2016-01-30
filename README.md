@@ -44,7 +44,8 @@ for this package.
 
 1. Apply the patch file XComMutatorEnabler.txt with PatcherGUI
 2. Copy DefaultMutatorLoader.ini to your XEW config folder (e.g. C:\Program Files (x86)\Steam\SteamApps\Common\XCom Enemy Within\XEW\XComGame\Config)
-3. Add the following line to the [Engine.ScriptPackages] section of the DefaultEngine.ini file in your XEW Config folder (just after XComUIShell):
+3. Copy XComMutator.u to your XEW CookedPCConsole folder
+4. Add the following line to the [Engine.ScriptPackages] section of the DefaultEngine.ini file in your XEW Config folder (just after XComUIShell):
     +NonNativePackages=XComMutator
     
 #### Enable the Sightlines Mod
