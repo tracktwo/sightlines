@@ -1,3 +1,7 @@
+2016-01-27 - Version 1.1
+    - Quick bugfix for LW using a disc indicator. 1.0 displayed both the disc
+      and the eye, now shows only the disc.
+
 2016-01-27 - Version 1.0
     - Initial Release!
     - Added EW support and new indicator types
