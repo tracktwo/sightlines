@@ -33,6 +33,10 @@ function Mutate(String MutateString, PlayerController Sender)
     if (MutateString == "XComTacticalController.ParsePath") {
         MoveHelperOutOfTheWay(m_kFriendlySectoid);
         MoveHelperOutOfTheWay(m_kFriendlyChryssalid);
+    } else if (MutateString == "RefreshSightlines") {
+        if (ShouldProcessSightlines()) {
+            ProcessSightline();
+        }
     }
     super.Mutate(MutateString, Sender);
 }
@@ -74,18 +78,27 @@ function ToggleOverwatchIndicators()
     SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
 }
 
-// Visibilty updates are processed on tick intervals. The minimum time passed between updates
-// is configurable via SIGHTLINE_TICK_DELAY.
-simulated event Tick(float fDeltaTime)
+function bool ShouldProcessSightlines()
 {
     local XGUnit kActiveUnit;
     local XComPlayerController kController;
 
-    `Log("Sightline mutator ready and active!");
     kController = XComPlayerController(WorldInfo.GetALocalPlayerController());
     kActiveUnit = XComTacticalController(kController).GetActiveUnit();
 
     if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || kActiveUnit.IsPerformingAction()) {
+        return false;
+    }
+
+    return true;
+}
+
+// Visibilty updates are processed on tick intervals. The minimum time passed between updates
+// is configurable via SIGHTLINE_TICK_DELAY.
+simulated event Tick(float fDeltaTime)
+{
+
+    if (!ShouldProcessSightlines()) {
         RemoveAllVisibility();
         return;
     }
@@ -97,7 +110,7 @@ simulated event Tick(float fDeltaTime)
 
     m_fTimeSinceLastTick = 0.0;
 
-    ProcessSightline(fDeltaTime);
+    ProcessSightline();
 }
 
 // Initialize a helper - set them as invisible and non-interacting with the environment.
@@ -131,6 +144,22 @@ function MoveHelper(XGUnit kHelper, vector cursorLoc)
     class'XComWorldData'.static.GetWorldData().ClearTileBlockedByUnitFlag(kHelper);
 }
 
+function ShowDisc(XGUnit kUnit)
+{
+    kUnit.m_kDiscMesh.SetHidden(false);
+    switch (SightIndicator) {
+        case eIndicator_Disc_Green:
+            kUnit.m_kDiscMesh.SetMaterial(0, kUnit.UnitCursor_UnitSelect_Green);
+            break;
+        case eIndicator_Disc_Orange:
+            kUnit.m_kDiscMesh.SetMaterial(0, kUnit.UnitCursor_UnitSelect_Orange);
+            break;
+        case eIndicator_Disc_Gold:
+            kUnit.m_kDiscMesh.SetMaterial(0, kUnit.UnitCursor_UnitSelect_Gold);
+            break;
+    }
+}
+
 // Process all units in the game and update their visibility flags. Return true if any unit changed
 // from not visible to visible or vice versa.
 function bool ProcessVisibleUnits(XGUnit kHelper)
@@ -161,19 +190,8 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
 
             // All visible enemies should have their discs updated if necessary, regardless
             // if they're coming into sight or not.
-            switch(SightIndicator) {
-                case eIndicator_Disc_Green:
-                    kEnemy.SetDiscState(6);
-                    kEnemy.m_kDiscMesh.SetMaterial(0, kEnemy.UnitCursor_UnitSelect_Green);
-                    break;
-                case eIndicator_Disc_Orange:
-                    kEnemy.SetDiscState(6);
-                    break;
-                case eIndicator_Disc_Gold:
-                    kEnemy.SetDiscState(6);
-                    kEnemy.m_kDiscMesh.SetMaterial(0, kEnemy.UnitCursor_UnitSelect_Gold);
-                    break;
-                default:
+            if (SightIndicator != eIndicator_Overwatch) {
+                    ShowDisc(kEnemy);
             }
         } else {
             // Enemy is not visible. Strip all flags.
@@ -184,7 +202,7 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
 
             // Reset disc state if necessary.
             if (SightIndicator != eIndicator_Overwatch) {
-                kEnemy.SetDiscState(0);
+                kEnemy.m_kDiscMesh.Sethidden(true);
             }
         }
     }
@@ -198,9 +216,14 @@ function RemoveAllVisibility()
     local XGUnit kUnit;
 
     foreach AllActors(class'XGUnit', kUnit) {
+
+        if (kUnit.GetTeam() != eTeam_Alien) {
+            continue;
+        }
+
         kUnit.m_iZombieMoraleLoss = kUnit.m_iZombieMoraleLoss & ~0x60000000;
         if (SightIndicator != eIndicator_Overwatch) {
-            kUnit.SetDiscState(0);
+            kUnit.m_kDiscMesh.SetHidden(true);
         }
     }
 }
@@ -218,7 +241,7 @@ function XGUnit CreateHelper(EPawnType ePawnType)
     return kUnit;
 }
 
-function ProcessSightline(float fDeltaTime)
+function ProcessSightline()
 {
     local Vector cursorLoc;
     local XComPlayerController controllerRef;

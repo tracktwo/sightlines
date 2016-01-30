@@ -10,6 +10,7 @@ type %~dp0\Patches\UIUnitFlag.RealizeEKG.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGAIPlayer_Animal.OnUnitEndMove.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XComTacticalController.ParsePath.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnit.UpdateInteractClaim.txt >> %1\Sightlines_EW.txt
+type %~dp0\Patches\XGUnit.ShowMouseOverDisc.txt >> %1\Sightlines_EW.txt
 
 copy %1\Sightlines_EW.txt %1\Sightlines_LW.txt
 type %~dp0\Patches\UITacticalHUD_Radar.UpdateBlips.txt >> %1\Sightlines_LW.txt
