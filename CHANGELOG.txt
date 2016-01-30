@@ -1,5 +1,6 @@
 2015-01-29 - Version 1.2
     - Add missing XComMutator.u package for EW
+    - Fix bug with doors and other interactive items not being clickable with the mouse
 
 2016-01-27 - Version 1.1
     - Quick bugfix for LW using a disc indicator. 1.0 displayed both the disc
