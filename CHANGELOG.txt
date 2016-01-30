@@ -1,6 +1,8 @@
 2015-01-29 - Version 1.2
     - Add missing XComMutator.u package for EW
     - Fix bug with doors and other interactive items not being clickable with the mouse
+    - Fix bug with LoS discs not showing the correct color and XCom losing their blue selection discs
+    - Fix bug with Acid/Immune popups when mousing through poison clouds
 
 2016-01-27 - Version 1.1
     - Quick bugfix for LW using a disc indicator. 1.0 displayed both the disc
