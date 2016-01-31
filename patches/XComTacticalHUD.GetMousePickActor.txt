@@ -60,7 +60,6 @@ OBJECT = XComTacticalHUD.GetMousePickActor : AUTO
     07 [@label_1] 77 00 <.kHitPawn> 2A 16
 		0F 00 <.kUnit> 2E <Class.XGUnit> 19 2E <Class.XComUnitPawnNativeBase> 00 <.kHitPawn> [@] <XComUnitPawnNativeBase.GetGameUnit.ReturnValue> 00 ( 1B <GetGameUnit> 16 ) 
         07 [@label_1] 82 19 00 <.kUnit> [@] <XGUnit.IsAlien_CheckByCharType.ReturnValue> 00 ( 1B <IsAlien_CheckByCharType> 16 ) 18 [@] ( 9A 38 3A 19 00 <.kUnit> [@] <XGUnit.GetTeam.ReturnValue> 00 ( 1B <GetTeam> 16 ) 26 16 16 )
-            E7 1F <%t "Found a unit"> 2A 16
             31 
             06 [@label_0x083F]
     [#label_1]
