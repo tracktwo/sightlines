@@ -134,30 +134,17 @@ simulated event Tick(float fDeltaTime)
 // Initialize a helper - set them as invisible and non-interacting with the environment.
 function InitializeHelper(XGUnit kHelper)
 {
-    local ParticleSystemComponent kPSC;
-
     kHelper.GetPawn().SetCollision(false, false, true);
     kHelper.GetPawn().bCollideWorld = false;
     kHelper.GetPawn().SetPhysics(0);
 
-    // Make sure the helper is invisible. But, we don't want to trigger bioelectric
-    // skin, which is implemented in native code and uses the visibility of the unit
-    // to trigger. So: force the unit to be visible, but hide the meshes.
+    // Make sure the helper is invisible. 
     kHelper.SetVisible(false);
     kHelper.SetHidden(true);
-    //kHelper.SetHiding(true);
-    //kHelper.GetPawn().SetHidden(true);
+    kHelper.SetHiding(true);
+    kHelper.GetPawn().SetHidden(true);
     kHelper.GetPawn().HideMainPawnMesh();
     kHelper.GetPawn().Weapon.Mesh.SetHidden(true);
-
-    // Remove all particle effects (e.g. chryssalid drool). Since they're visible now,
-    // we don't want to see this.
-    foreach kHelper.GetPawn().m_arrRemovePSCOnDeath(kPSC) {
-        kPSC.DeactivateSystem();
-        kHelper.GetPawn().Mesh.DetachComponent(kPSC);
-        kHelper.GetPawn().DetachComponent(kPSC);
-    }
-    kHelper.GetPawn().m_arrRemovePSCOnDeath.Length = 0;
 }
 
 // Move a helper unit to a new location.
@@ -167,7 +154,7 @@ function MoveHelper(XGUnit kHelper, vector cursorLoc)
 
     // Process the new position without evaluating the new stance or the pawn will interact 
     // with the environment in ways we don't want (e.g. splashing in water).
-   // kHelper.ProcessNewPosition(false);
+    kHelper.ProcessNewPosition(false);
 
     // Don't mark the tile occupied by the helper as blocked. E.g. if you're behind hard cover
     // and are peeking out around a corner and you move the cursor to the tile you peek out over,
