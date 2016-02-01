@@ -134,6 +134,8 @@ simulated event Tick(float fDeltaTime)
 // Initialize a helper - set them as invisible and non-interacting with the environment.
 function InitializeHelper(XGUnit kHelper)
 {
+    local ParticleSystemComponent kPSC;
+
     kHelper.GetPawn().SetCollision(false, false, true);
     kHelper.GetPawn().bCollideWorld = false;
     kHelper.GetPawn().SetPhysics(0);
@@ -141,7 +143,7 @@ function InitializeHelper(XGUnit kHelper)
     // Make sure the helper is invisible. But, we don't want to trigger bioelectric
     // skin, which is implemented in native code and uses the visibility of the unit
     // to trigger. So: force the unit to be visible, but hide the meshes.
-    kHelper.SetVisible(true);
+    kHelper.SetVisible(false);
     kHelper.SetHidden(true);
     //kHelper.SetHiding(true);
     //kHelper.GetPawn().SetHidden(true);
@@ -150,7 +152,12 @@ function InitializeHelper(XGUnit kHelper)
 
     // Remove all particle effects (e.g. chryssalid drool). Since they're visible now,
     // we don't want to see this.
-    kHelper.GetPawn().m_arrParticleEffects.Length = 0;
+    foreach kHelper.GetPawn().m_arrRemovePSCOnDeath(kPSC) {
+        kPSC.DeactivateSystem();
+        kHelper.GetPawn().Mesh.DetachComponent(kPSC);
+        kHelper.GetPawn().DetachComponent(kPSC);
+    }
+    kHelper.GetPawn().m_arrRemovePSCOnDeath.Length = 0;
 }
 
 // Move a helper unit to a new location.
