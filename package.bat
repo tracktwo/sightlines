@@ -14,6 +14,7 @@ type %~dp0\Patches\XGUnit.ShowMouseOverDisc.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnit.OnEnterPoison.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\UIUnitFlag.Update.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGTacticalHUD.GetMousePickActor.txt >> %1\Sightlines_EW.txt
+type %~dp0\Patches\XGUnit.OnUpdatedVisibility.txt >> %1\Sightlines_EW.txt
 
 copy %1\Sightlines_EW.txt %1\Sightlines_LW.txt
 type %~dp0\Patches\UITacticalHUD_Radar.UpdateBlips.txt >> %1\Sightlines_LW.txt
