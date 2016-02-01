@@ -78,6 +78,24 @@ function ToggleOverwatchIndicators()
     SetTimer(OVERWATCH_TOGGLE_DELAY, false, 'ToggleOverwatchIndicators');
 }
 
+function bool IsPerformingNonMoveAction(XGUnit kUnit)
+{
+    local XGAction_Targeting kAction;
+
+    if (kUnit.IsPerformingAction()) {
+        kAction = XGAction_Targeting(kUnit.GetAction());
+        if (kAction != none) {
+            if (kAction.m_kShot != none && kAction.m_kShot.IsA('XGAbility_Grapple')) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 function bool ShouldProcessSightlines()
 {
     local XGUnit kActiveUnit;
@@ -86,7 +104,7 @@ function bool ShouldProcessSightlines()
     kController = XComPlayerController(WorldInfo.GetALocalPlayerController());
     kActiveUnit = XComTacticalController(kController).GetActiveUnit();
 
-    if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || kActiveUnit.IsPerformingAction()) {
+    if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || IsPerformingNonMoveAction(kActiveUnit)) {
         return false;
     }
 
@@ -120,13 +138,19 @@ function InitializeHelper(XGUnit kHelper)
     kHelper.GetPawn().bCollideWorld = false;
     kHelper.GetPawn().SetPhysics(0);
 
-    // Make sure the helper is invisible
-    kHelper.SetVisible(false);
+    // Make sure the helper is invisible. But, we don't want to trigger bioelectric
+    // skin, which is implemented in native code and uses the visibility of the unit
+    // to trigger. So: force the unit to be visible, but hide the meshes.
+    kHelper.SetVisible(true);
     kHelper.SetHidden(true);
-    kHelper.SetHiding(true);
-    kHelper.GetPawn().SetHidden(true);
+    //kHelper.SetHiding(true);
+    //kHelper.GetPawn().SetHidden(true);
     kHelper.GetPawn().HideMainPawnMesh();
     kHelper.GetPawn().Weapon.Mesh.SetHidden(true);
+
+    // Remove all particle effects (e.g. chryssalid drool). Since they're visible now,
+    // we don't want to see this.
+    kHelper.GetPawn().m_arrParticleEffects.Length = 0;
 }
 
 // Move a helper unit to a new location.
@@ -136,7 +160,7 @@ function MoveHelper(XGUnit kHelper, vector cursorLoc)
 
     // Process the new position without evaluating the new stance or the pawn will interact 
     // with the environment in ways we don't want (e.g. splashing in water).
-    kHelper.ProcessNewPosition(false);
+   // kHelper.ProcessNewPosition(false);
 
     // Don't mark the tile occupied by the helper as blocked. E.g. if you're behind hard cover
     // and are peeking out around a corner and you move the cursor to the tile you peek out over,
@@ -291,7 +315,6 @@ function ProcessSightline()
     kPathPawn = kActiveUnit.GetPathingPawn();
     cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
     if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
-
         // The path is invalid. Remove visibility
         RemoveAllVisibility();
     }
@@ -300,8 +323,6 @@ function ProcessSightline()
         MoveHelper(m_kFriendlyChryssalid, cursorLoc);
         MoveHelper(m_kFriendlySectoid, cursorLoc);
 
-        InitializeHelper(m_kFriendlyChryssalid);
-        InitializeHelper(m_kFriendlySectoid);
 
         if (kActiveUnit.CanUseCover()) {
             bAnyChange = ProcessVisibleUnits(m_kFriendlySectoid);
@@ -309,6 +330,9 @@ function ProcessSightline()
             bAnyChange = ProcessVisibleUnits(m_kFriendlyChryssalid);
         }
     }
+
+    InitializeHelper(m_kFriendlyChryssalid);
+    InitializeHelper(m_kFriendlySectoid);
 
     // If we're using overwatch indication, set up the timer toggle to swap 
     // between red and blue for overwatching enemies.
