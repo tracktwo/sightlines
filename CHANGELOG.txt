@@ -1,3 +1,7 @@
+2015-01-31 - Version 1.3
+    - Fix bug with bioelectric skin showing units near the cursor
+    - LoS now updated while choosing grapple target locations
+    - Fix bug with cursor jitter when choosing a location to move. May also improve performance.
 2015-01-29 - Version 1.2
     - Add missing XComMutator.u package for EW
     - Fix bug with doors and other interactive items not being clickable with the mouse

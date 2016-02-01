@@ -13,7 +13,7 @@ type %~dp0\Patches\XGUnit.UpdateInteractClaim.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnit.ShowMouseOverDisc.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnit.OnEnterPoison.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\UIUnitFlag.Update.txt >> %1\Sightlines_EW.txt
-type %~dp0\Patches\XGTacticalHUD.GetMousePickActor.txt >> %1\Sightlines_EW.txt
+type %~dp0\Patches\XComTacticalHUD.GetMousePickActor.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnit.OnUpdatedVisibility.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnitNativeBase.SetBETemplate.txt >> %1\Sightlines_EW.txt
 
