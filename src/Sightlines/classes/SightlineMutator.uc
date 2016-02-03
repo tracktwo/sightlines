@@ -180,7 +180,7 @@ function ShowDisc(XGUnit kUnit)
 
 // Process all units in the game and update their visibility flags. Return true if any unit changed
 // from not visible to visible or vice versa.
-function bool ProcessVisibleUnits(XGUnit kHelper)
+function bool ProcessVisibleUnits(XGUnit kActiveUnit, XGUnit kHelper)
 {
     local array<XGUnit> arrEnemies;
     local XGUnit kEnemy;
@@ -195,7 +195,7 @@ function bool ProcessVisibleUnits(XGUnit kHelper)
             continue;
         }
 
-        if (arrEnemies.Find(kEnemy) != -1) {
+        if (arrEnemies.Find(kEnemy) != -1 && kActiveUnit.GetSquad().SquadCanSeeEnemy(kEnemy)) {
             // Enemy is visible. Set the flag if it isn't already set.
             if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) == 0) {
                 if (SightIndicator == eIndicator_Overwatch) {
@@ -319,9 +319,9 @@ function ProcessSightline()
 
 
         if (kActiveUnit.CanUseCover()) {
-            bAnyChange = ProcessVisibleUnits(m_kFriendlySectoid);
+            bAnyChange = ProcessVisibleUnits(kActiveUnit, m_kFriendlySectoid);
         } else {
-            bAnyChange = ProcessVisibleUnits(m_kFriendlyChryssalid);
+            bAnyChange = ProcessVisibleUnits(kActiveUnit, m_kFriendlyChryssalid);
         }
     }
 
