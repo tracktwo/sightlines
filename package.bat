@@ -48,4 +48,8 @@ copy D:\UDK\UDKGame\CookedPC\XcomMutator.u %1 || (
     exit /b 1
     )
 
+copy %~dp0\config\DefaultSightlines.ini %1\DefaultSightlines.ini || (
+    echo Failed to copy DefaultSightlines.ini
+    exit /b 1
+    )
 

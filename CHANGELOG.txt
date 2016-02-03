@@ -1,5 +1,7 @@
 2016-02-03 - Version 1.4
     - Fix bug with indicators showing on enemies not visible to any squad members.
+    - Moved INI options from DefaultGameCore.ini to a new file DefaultSightlines.ini. A sample
+      version with values set to the defaults and containing comments is included in the mod.
 
 2016-02-01 - Version 1.3
     - Fix bug with bioelectric skin showing units near the cursor

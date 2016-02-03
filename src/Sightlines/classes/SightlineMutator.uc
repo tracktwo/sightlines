@@ -4,7 +4,7 @@
  * https://github.com/tracktwo/sightlines
  * */
 
-class SightlineMutator extends XComMutator config(GameCore);
+class SightlineMutator extends XComMutator config(Sightlines);
 
 enum ESightIndicator
 {
@@ -27,6 +27,8 @@ var config float OVERWATCH_TOGGLE_DELAY;
 // How much time to wait between ticks before processing LoS
 var config float SIGHTLINE_TICK_DELAY;
 
+// Whether or not to show indicators on friendly units
+var config bool SHOW_FRIENDLY_INDICATORS;
 
 function Mutate(String MutateString, PlayerController Sender)
 {
@@ -154,7 +156,7 @@ function MoveHelper(XGUnit kHelper, vector cursorLoc)
 
     // Process the new position without evaluating the new stance or the pawn will interact 
     // with the environment in ways we don't want (e.g. splashing in water).
-    kHelper.ProcessNewPosition(false);
+    //kHelper.ProcessNewPosition(false);
 
     // Don't mark the tile occupied by the helper as blocked. E.g. if you're behind hard cover
     // and are peeking out around a corner and you move the cursor to the tile you peek out over,
@@ -178,6 +180,47 @@ function ShowDisc(XGUnit kUnit)
     }
 }
 
+function bool SetIndicator(XGUnit kEnemy)
+{
+    local bool bAnyChange;
+
+    if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) == 0) {
+        if (SightIndicator == eIndicator_Overwatch) {
+            kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
+        } else {
+            kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x20000000;
+        }
+        bAnyChange = true;
+    }
+
+    // All visible enemies should have their discs updated if necessary, regardless
+    // if they're coming into sight or not.
+    if (SightIndicator != eIndicator_Overwatch) {
+            ShowDisc(kEnemy);
+    }
+
+    return bAnyChange;
+}
+
+function bool ClearIndicator(XGUnit kEnemy)
+{
+
+    local bool bAnyChange;
+
+    // Enemy is not visible. Strip all flags.
+    if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
+        kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000;
+        bAnyChange = true;
+    }
+
+    // Reset disc state if necessary.
+    if (SightIndicator != eIndicator_Overwatch) {
+        kEnemy.m_kDiscMesh.Sethidden(true);
+    }
+
+    return bAnyChange;
+}
+
 // Process all units in the game and update their visibility flags. Return true if any unit changed
 // from not visible to visible or vice versa.
 function bool ProcessVisibleUnits(XGUnit kActiveUnit, XGUnit kHelper)
@@ -191,36 +234,33 @@ function bool ProcessVisibleUnits(XGUnit kActiveUnit, XGUnit kHelper)
 
     // Reset all units in the game to not visible.
     foreach AllActors(class'XGUnit', kEnemy) {
+
+        if (SHOW_FRIENDLY_INDICATORS && kEnemy.GetTeam() == eTeam_XCom) {
+            // Handle indicators on XCom
+            if (kHelper.CanSee(kEnemy)) {
+                if (SetIndicator(kEnemy)) {
+                    bAnyChange = true;
+                }
+            }
+            else {
+                if (ClearIndicator(kEnemy)) {
+                    bAnyChange = true;
+                }
+            }
+        }
+
         if (kEnemy.GetTeam() != eTeam_Alien) {
             continue;
         }
 
         if (arrEnemies.Find(kEnemy) != -1 && kActiveUnit.GetSquad().SquadCanSeeEnemy(kEnemy)) {
             // Enemy is visible. Set the flag if it isn't already set.
-            if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) == 0) {
-                if (SightIndicator == eIndicator_Overwatch) {
-                    kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x40000000;
-                } else {
-                    kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss | 0x20000000;
-                }
+            if (SetIndicator(kEnemy)) {
                 bAnyChange = true;
-            } 
-
-            // All visible enemies should have their discs updated if necessary, regardless
-            // if they're coming into sight or not.
-            if (SightIndicator != eIndicator_Overwatch) {
-                    ShowDisc(kEnemy);
             }
         } else {
-            // Enemy is not visible. Strip all flags.
-            if ((kEnemy.m_iZombieMoraleLoss & 0x60000000) != 0) {
-                kEnemy.m_iZombieMoraleLoss = kEnemy.m_iZombieMoraleLoss & ~0x60000000;
+            if (ClearIndicator(kEnemy)) {
                 bAnyChange = true;
-            }
-
-            // Reset disc state if necessary.
-            if (SightIndicator != eIndicator_Overwatch) {
-                kEnemy.m_kDiscMesh.Sethidden(true);
             }
         }
     }

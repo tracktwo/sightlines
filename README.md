@@ -19,6 +19,7 @@ Vanilla EW. EU is not supported (but might work?)
 3. Add the following line to the bottom of the DefaultMutatorLoader.ini file in your 
 XEW Config folder:
     arrTacticalMutators="Sightlines.SightlineMutator"
+4. Copy DefaultSightlines.ini to your XEW config folder (e.g. C:\Program Files (x86)\Steam\SteamApps\Common\XCom Enemy Within\XEW\XComGame\Config)
 
 ### Installation for Enemy Within
 
@@ -54,6 +55,7 @@ Finally you're actually ready to install this mod.
 
 1. Apply the patch file Sightlines_EW.txt with PatcherGUI
 2. Copy Sightlines.u to your XEW packages folder (e.g. C:\Program Files (x86)\Steam\SteamApps\Common\XCom Enemy Within\XEW\XComGame\CookedPCConsole)
+4. Copy DefaultSightlines.ini to your XEW config folder (e.g. C:\Program Files (x86)\Steam\SteamApps\Common\XCom Enemy Within\XEW\XComGame\Config)
 
 If you skipped section 2 because you already had mutators enabled, you'll need to add Sightlines.SightlineMutator to your DefaultMutatorLoader.ini file
 as per the instructions in the LW section. If you followed the steps to enable mutators this is already done for you in the file you copied over.
@@ -69,12 +71,13 @@ DefaultMutatorLoader.ini, but ensure the correct lines are already there.
 
 ## Configuration
 
-The mod contains several configurable variables. These can be modified by adding the following
-lines to the bottom of DefaultGameCore.ini:
+The mod contains several configurable variables. These can be modified by changing the appropriate
+lines in DefaultSightlines.ini.
 
     [Sightlines.SightlineMutator]
     OVERWATCH_TOGGLE_DELAY=1.2
     SIGHTLINE_TICK_DELAY=1.0
+    SHOW_FRIENDLY_INDICATORS=false
     SightIndicator=eIndicator_Disc_Green
 
 OVERWATCH_TOGGLE_DELAY controls how long the mod waits when switching back and forth
@@ -85,6 +88,11 @@ SIGHTLINE_TICK_DELAY controls the refresh rate of the LoS information. Setting t
 lower value will mean a lower lag time between moving the mouse and updated LoS being
 displayed on-screen, but may increase CPU use. Conversely, setting this value higher can
 improve performance at a cost of less frequent LoS updates.
+
+SHOW_FRIENDLY_INDICATORS controls whether or not friendly units (e.g. XCom) are also
+highlighted using the indicator. This may be useful in LW to determine whether or not
+a unit will be in sight for Command. It is off by default as some may find all the
+additional indicators to be distracting.
 
 SightIndicator controls how visible aliens are represented in the game. There are four
 possible values:
