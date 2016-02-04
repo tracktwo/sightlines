@@ -15,6 +15,7 @@ type %~dp0\Patches\UIUnitFlag.Update.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XComTacticalHUD.GetMousePickActor.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnit.OnUpdatedVisibility.txt >> %1\Sightlines_EW.txt
 type %~dp0\Patches\XGUnitNativeBase.SetBETemplate.txt >> %1\Sightlines_EW.txt
+type %~dp0\Patches\XComTacticalCheatManager.marketing.txt >> %1\Sightlines_EW.txt
 
 copy %1\Sightlines_EW.txt %1\Sightlines_LW.txt
 

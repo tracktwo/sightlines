@@ -4,6 +4,9 @@
       version with values set to the defaults and containing comments is included in the mod.
     - Added new config option SHOW_FRIENDLY_INDICATORS (off by default). Enabling this option
       will show LoS indicators on friendly units that will be in LoS at the new location.
+    - Added a new config option USE_TOGGLE_HOTKEY (off by default). Enabling this option will
+      allow setting a hotkey to toggle LoS refreshing on and off. See the description in
+      the supplied DefaultSightlines.ini or in README.md for more information.
 
 2016-02-01 - Version 1.3
     - Fix bug with bioelectric skin showing units near the cursor

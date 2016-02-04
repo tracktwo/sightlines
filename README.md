@@ -78,6 +78,7 @@ lines in DefaultSightlines.ini.
     OVERWATCH_TOGGLE_DELAY=1.2
     SIGHTLINE_TICK_DELAY=1.0
     SHOW_FRIENDLY_INDICATORS=false
+    USE_TOGGLE_HOTKEY=false
     SightIndicator=eIndicator_Disc_Green
 
 OVERWATCH_TOGGLE_DELAY controls how long the mod waits when switching back and forth
@@ -93,6 +94,22 @@ SHOW_FRIENDLY_INDICATORS controls whether or not friendly units (e.g. XCom) are 
 highlighted using the indicator. This may be useful in LW to determine whether or not
 a unit will be in sight for Command. It is off by default as some may find all the
 additional indicators to be distracting.
+
+USE_TOGGLE_HOTKEY controls whether LoS updates and indicators are always on (false, the
+default) or on only when a hotkey is pressed (true). If enabled, pressing the hotkey
+once will enable LoS updates, updated on the SIGHTLINE_TICK_DELAY frequency as before.
+Pressing the hotkey again will turn off all indicators and disable LoS updates. This 
+option can be used if you find the automatic updates slow the game down too much, or
+if the always-on indicators are distracting. The hotkey must be specified in 
+DefaultInput.ini in your config folder in the XComGame.XComTacticalInput section. 
+Searching the file for "Ability Shortcuts" should get you into the right place. The
+new hotkey can be added with a line such as:
+
+.Bindings=(Name="V", Command="marketing", alt=TRUE)
+
+This assigns the hotkey Alt-V to the 'marketing' command, which was a debug mode
+I've commandeered for this mod. The key can be adjusted to any key you prefer,
+including gamepad buttons.
 
 SightIndicator controls how visible aliens are represented in the game. There are four
 possible values:

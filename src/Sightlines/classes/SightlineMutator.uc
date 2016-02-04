@@ -30,6 +30,12 @@ var config float SIGHTLINE_TICK_DELAY;
 // Whether or not to show indicators on friendly units
 var config bool SHOW_FRIENDLY_INDICATORS;
 
+// Whether LoS indicators should only be only enabled via a hotkey or
+// persist.
+var config bool USE_TOGGLE_HOTKEY; 
+
+var bool bShowIndicators;
+
 function Mutate(String MutateString, PlayerController Sender)
 {
     if (MutateString == "XComTacticalController.ParsePath") {
@@ -39,8 +45,65 @@ function Mutate(String MutateString, PlayerController Sender)
         if (ShouldProcessSightlines()) {
             ProcessSightline();
         }
+    } else if (MutateString == "Sightlines.Toggle" && USE_TOGGLE_HOTKEY) {
+        bShowIndicators = !bShowIndicators;
+        if (bShowIndicators) {
+            ProcessSightline();
+        } else {
+            RemoveAllVisibility();
+        }
     }
+
     super.Mutate(MutateString, Sender);
+}
+
+function PostLoadSaveGame(PlayerController Sender)
+{
+    SetupHelpers();
+}
+
+function PostLevelLoaded(PlayerController Sender)
+{
+    SetupHelpers();
+}
+
+function SetupHelpers()
+{
+    local XGUnit kUnit;
+
+    // Try to find our helpers. They may have been loaded from a saved game.
+    if (m_kFriendlyChryssalid == none) {
+        foreach AllActors(class'XGUnit', kUnit) {
+            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Chryssalid) {
+                m_kFriendlyChryssalid = kUnit;
+                InitializeHelper(m_kFriendlyChryssalid);
+                break;
+            }
+        }
+    }
+
+    if (m_kFriendlySectoid == none) {
+        foreach AllActors(class'XGUnit', kUnit) {
+            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Sectoid) {
+                m_kFriendlySectoid = kUnit; 
+                InitializeHelper(m_kFriendlySectoid);
+                break;
+            }
+        }
+    }
+
+    // Spawn the helpers, if necessary.
+    if (m_kFriendlyChryssalid == none) {
+        m_kFriendlyChryssalid = CreateHelper(ePawnType_Chryssalid);
+        m_kFriendlyChryssalid.SetvisibleToTeams(0);
+        InitializeHelper(m_kFriendlyChryssalid);
+    } 
+
+    if (m_kFriendlySectoid == none) {
+        m_kFriendlySectoid = CreateHelper(ePawnType_Sectoid);
+        m_kFriendlySectoid.SetvisibleToTeams(0);
+        InitializeHelper(m_kFriendlySectoid);
+    }
 }
 
 // Move the helper units somewhere safe. This is invoked from a mutator call before processing a move
@@ -107,6 +170,11 @@ function bool ShouldProcessSightlines()
     kActiveUnit = XComTacticalController(kController).GetActiveUnit();
 
     if (kActiveUnit == none || kActiveUnit.GetTeam() != eTeam_XCom || IsPerformingNonMoveAction(kActiveUnit)) {
+        return false;
+    }
+
+    // If user has requested hotkey-based indicators and they're currently off, do nothing.
+    if (USE_TOGGLE_HOTKEY && !bShowIndicators) {
         return false;
     }
 
@@ -304,7 +372,6 @@ function ProcessSightline()
     local Vector cursorLoc;
     local XComPlayerController controllerRef;
     local XGUnit kActiveUnit;
-    local XGUnit kUnit;
     local XComPathingPawn kPathPawn;
     local bool bAnyChange;
 
@@ -312,40 +379,6 @@ function ProcessSightline()
 
     kActiveUnit = XComTacticalController(controllerRef).GetActiveUnit();
 
-    // Try to find our helpers. They may have been loaded from a saved game.
-    if (m_kFriendlyChryssalid == none) {
-        foreach AllActors(class'XGUnit', kUnit) {
-            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Chryssalid) {
-                m_kFriendlyChryssalid = kUnit;
-                InitializeHelper(m_kFriendlyChryssalid);
-                break;
-            }
-        }
-    }
-
-    if (m_kFriendlySectoid == none) {
-        foreach AllActors(class'XGUnit', kUnit) {
-            if (kUnit.GetTeam() == eTeam_Neutral && kUnit.GetCharacter().m_eType == ePawnType_Sectoid) {
-                m_kFriendlySectoid = kUnit; 
-                InitializeHelper(m_kFriendlySectoid);
-                break;
-            }
-        }
-    }
-
-    // Spawn the helpers, if necessary.
-    if (m_kFriendlyChryssalid == none) {
-        m_kFriendlyChryssalid = CreateHelper(ePawnType_Chryssalid);
-        m_kFriendlyChryssalid.SetvisibleToTeams(0);
-        InitializeHelper(m_kFriendlyChryssalid);
-    } 
-
-    if (m_kFriendlySectoid == none) {
-        m_kFriendlySectoid = CreateHelper(ePawnType_Sectoid);
-        m_kFriendlySectoid.SetvisibleToTeams(0);
-        InitializeHelper(m_kFriendlySectoid);
-    }
-    
     kPathPawn = kActiveUnit.GetPathingPawn();
     cursorLoc = kPathPawn.GetPathDestinationLimitedByCost();
     if (cursorLoc.X == 0 && cursorLoc.Y == 0 && cursorLoc.Z == 0) {
